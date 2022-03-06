@@ -1,0 +1,97 @@
+#!/bin/bash
+
+pdf_reader="xdg-open"
+notes_folder="${NOTES_FOLDER:-$HOME/docs/notes}"
+templates_folder="${TEMPLATES_FOLDER:-$XDG_DATA_HOME/templates}"
+
+run_dmenu() {
+	printf "$2" | dmenu -i -c -l 20 -bw 4 -p "$1"
+}
+
+while [ "$#" -gt "0" ]; do
+	case "$1" in
+		-p|--pdf_reader)
+			case "$2" in
+				-*) echo "dmnotes: -p flag got an unexpected parameter"
+					exit;;
+			esac
+
+			[ ! $(command -v "$2") ] && echo "$SHELL: command not found: $2" && exit
+			pdf_reader="$2"
+			shift 2;;
+
+		-f|--notes_folder)
+			case "$2" in
+				-*) echo "dmnotes: -f flag got an unexpected parameter"
+					exit;;
+			esac
+
+			[ ! -d "$2" ] && echo "dmnotes: cannot access '$2': No such file or directory" && exit
+			notes_folder="$2"
+			shift 2;;
+
+		-t|--templates_folder)
+			case "$2" in
+				-*) echo "dmnotes: -t flag got an unexpected parameter"
+					exit;;
+			esac
+
+			[ ! -d "$2" ] && echo "dmnotes: cannot access '$2': No such file or directory" && exit
+			templates_folder="$2"
+			shift 2;;
+
+		-h|--help)
+			echo "dmnotes [-p {pdf_reader}] [-f {notes_folder}] [-t {templates_folder}]"
+			exit;;
+
+		*)
+			echo "dmnotes: invalid option -- '$1'"
+			echo "Try 'dmnotes --help' for more information."
+			exit;;
+	esac
+done
+
+type=$(run_dmenu "Select filetype" "Markdown\\nLaTeX\\nOpen compiled note")
+[ -z "$type" ] && exit
+
+case "$type" in
+	"Markdown") prefix="md";;
+	"LaTeX")    prefix="tex";;
+esac
+
+if [ ! "$type" = "Open compiled note" ]; then
+	option=$(run_dmenu "Choose an option" "New empty note\\nChoose existing note\\nDelete note")
+	[ -z "$option" ] && exit
+
+	case "$option" in
+		"New empty note")
+			name=$(run_dmenu "Enter the name" "")
+			[ -z "$name" ] && exit
+
+			mkdir "$notes_folder/$name"
+			touch "$notes_folder/$name/$name.$prefix"
+			st -e $EDITOR "$notes_folder/$name/$name.$prefix"
+			exit;;
+
+		"Choose existing note")
+			selected=$(run_dmenu "Select a file" "$(find "$notes_folder" -name "*.$prefix" -printf "%f\n" | sed "s/.$prefix$//")")
+			[ -z "$selected" ] && exit
+
+			st -e $EDITOR "$notes_folder/$selected/$selected.$prefix"
+			exit;;
+
+		"Delete note")
+			selected=$(run_dmenu "Select a file" "$(find "$notes_folder" -name "*.$prefix" -printf "%f\n" | sed "s/.$prefix$//")")
+			[ -z "$selected" ] && exit
+
+			option=$(run_dmenu "Sure?" "No\\nYes")
+			[ -z "$option" ] || [ "$option" = "No" ] && exit
+
+			rm -rf "$notes_folder/$selected"
+			exit;;
+	esac
+else
+	selected=$(run_dmenu "Select a file" "$(find "$notes_folder" -name "*.pdf" -printf "%f\n" | sed "s/.pdf$//")")
+	[ -z "$selected" ] && exit
+	$pdf_reader "$notes_folder/$selected/$selected.pdf"
+fi
