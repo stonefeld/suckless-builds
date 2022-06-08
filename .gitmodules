@@ -10,7 +10,3 @@
 [submodule "dwmblocks"]
 	path = dwmblocks
 	url = https://github.com/stonefeld/dwmblocks
-[submodule "dwm-nocolor"]
-	path = dwm-nocolor
-	url = https://github.com/stonefeld/dwm
-	branch = no-color-statusline

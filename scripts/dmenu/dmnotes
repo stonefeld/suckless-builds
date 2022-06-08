@@ -5,7 +5,11 @@ notes_folder="${NOTES_FOLDER:-$HOME/docs/notes}"
 templates_folder="${TEMPLATES_FOLDER:-$XDG_DATA_HOME/templates}"
 
 run_dmenu() {
-	printf "$2" | dmenu -i -c -l 20 -bw 4 -p "$1"
+	if [ "$3" = "wide" ]; then
+		printf "$2" | dmenu -i -l 20 -p "$1" -h 26
+	else
+		printf "$2" | dmenu -i -l 20 -p "$1"
+	fi
 }
 
 while [ "$#" -gt "0" ]; do
@@ -51,12 +55,13 @@ while [ "$#" -gt "0" ]; do
 	esac
 done
 
-type=$(run_dmenu "Select filetype" "Markdown\\nLaTeX\\nOpen compiled note")
+type=$(run_dmenu "Select filetype" "Markdown\\nLaTeX\\nRMarkdown\\nOpen compiled note")
 [ -z "$type" ] && exit
 
 case "$type" in
-	"Markdown") prefix="md";;
-	"LaTeX")    prefix="tex";;
+	"Markdown")  prefix="md";;
+	"LaTeX")     prefix="tex";;
+	"RMarkdown") prefix="rmd";;
 esac
 
 if [ ! "$type" = "Open compiled note" ]; then
@@ -65,19 +70,19 @@ if [ ! "$type" = "Open compiled note" ]; then
 
 	case "$option" in
 		"New empty note")
-			name=$(run_dmenu "Enter the name" "")
+			name=$(run_dmenu "Enter the name" "" wide)
 			[ -z "$name" ] && exit
 
 			mkdir "$notes_folder/$name"
 			touch "$notes_folder/$name/$name.$prefix"
-			st -e $EDITOR "$notes_folder/$name/$name.$prefix"
+			termlaunch -e "$EDITOR "$notes_folder/$name/$name.$prefix""
 			exit;;
 
 		"Choose existing note")
 			selected=$(run_dmenu "Select a file" "$(find "$notes_folder" -name "*.$prefix" -printf "%f\n" | sed "s/.$prefix$//")")
 			[ -z "$selected" ] && exit
 
-			st -e $EDITOR "$notes_folder/$selected/$selected.$prefix"
+			termlaunch -e $EDITOR "$notes_folder/$selected/$selected.$prefix"
 			exit;;
 
 		"Delete note")
